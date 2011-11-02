@@ -1,0 +1,15 @@
+mysql-database: 'jdbc:mysql://localhost:3306/minecraft'
+mysql-user: 'root'
+mysql-password: 'root'
+mysql-table: banlist
+
+broadcast:
+    Ban: "&6Player &e%victim%&6 was banned by &e%admin%&6! Reason: &e%reason%" 
+    Kick: "&6Player &e%victim%&6 was kicked by &e%admin%&6! Reason: &e%reason%" 
+    TempBan: "&6Player &e%victim%&6 was temp-banned by &e%admin%&6 for &e%time% &6Reason: &e%reason%" 
+    Unban: "&e%victim%&6 was unbanned by &e%admin%&6!" 
+user:
+    Ban: "You were banned by %admin%. Reason: %reason%"
+    Kick: "You were kicked by %admin%. Reason: %reason%"
+    TempBan: "You were temp-banned by %admin% for %time% Reason: %reason%"
+    IPBan: "Your IP is banned."
