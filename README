@@ -1,0 +1,48 @@
+Summary
+
+All this plugin does is force unwanted players to leave, either by banning them, kicking them, temporary banning them or IP-banning them. If you like, you can allow them to return by unbanning them.
+This plugin will also report all the locations and notes an administrator has given on a banned player, and allows quick access to teleport to these locations to investigate (if required).
+
+List of commands:
+
+/ban [player] {-s} [reason] - Bans player [player] permanently from the server, and gives them a nice message each time they try to log in. If -s is added, the ban will be silent to the other players currently online. If a player is already banned, it will add additional information with [reason].
+/tempban [player] {-s} [time] [reason] - Temporarily bans a player from the game. Time is given with an integer, followed by a unit, which is either s, m, h, or d. For example, /tempban nublet 30m spamming. Will ban player nublet for 30 minutes.
+/kick [player] {-s} [reason] - kicks a player from the game with a friendly reason. The player will be able to instantly rejoin.
+/banip [player] OR [IP] - blocks any account with a specific IP address from joining the game. /banip nublet will ban nublet, and ban his ip, whilst /banip 53.67.32.11 will block any accounts that try to sign in with 53.67.32.11 as their IP.
+/baninfo [player] - Recalls information about banned player [player]. Will list the reason they were banned for, and any additional notes that have been added.
+/addinfo [player] [information] - Adds additional information regarding a banned player. This will log the coordinates of where you are standing as well.
+/removeinfo [player] [id] - removes an 'additional info' entry from the database. Useful if you make a mistake.
+/bantp [player] [id] - Teleports you to the location of where the additional information with id [id] was made. Useful for investigations.
+/banexport - Exports the database to banned-players.txt.
+/banimport - Imports from banned-players.txt to the database.
+
+Permissions:
+
+This plugin requires bPermissions to work, and currently these are the ones I have implemented:
+
+banreport.ban - required for /ban, /tempban
+banreport.baninfo - required for /baninfo /addinfo, /removeinfo
+banreport.bantp
+banreport.io - required for /banexport and /banimport
+banreport.kick
+banreport.unban
+banreport.banip
+
+
+Setting up:
+
+BanReport runs off a MySQL database, and the query for the required table is this:
+
+CREATE TABLE `banlist` (
+`name`  varchar(32) NOT NULL ,
+`reason`  varchar(4096) NOT NULL ,
+`admin`  varchar(32) NOT NULL ,
+`time`  timestamp NOT NULL  ,
+`temptime`  timestamp NOT NULL  ,
+`IP`  varchar(15) NULL ,
+`additional`  varchar(4096) NOT NULL 
+)
+;
+Final notes:
+
+This plugin was heavily influenced by KiwiAdmin, as you can probably tell from the formatting.
