@@ -21,13 +21,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event.Priority;
 import org.bukkit.event.Event;
 
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.config.Configuration;
-
-
-import com.nijikokun.bukkit.Permissions.Permissions;
 
 
 @SuppressWarnings("deprecation")
@@ -36,11 +32,10 @@ public class BanReport extends JavaPlugin {
 	
 	static boolean dev = false; //turn off for production.
 	
-	Permissions CurrentPermissions = null;
 	
 	public static String newline = System.getProperty("line.separator");
 	
-	String maindir = "plugins/BanReport/";
+	public static String maindir = "plugins/BanReport/";
 	
     public static final Logger log = Logger.getLogger("Minecraft");
     
@@ -62,6 +57,8 @@ public class BanReport extends JavaPlugin {
 	public String userTempBan;
 	public String userIPBan;
 	
+	public static boolean useMySQL;
+	
 
 //    ArrayList<String> bannedPlayers = new ArrayList<String>();
     MySQLDatabase db;
@@ -77,25 +74,10 @@ public class BanReport extends JavaPlugin {
     	this.userBan = properties.getNode("user").getString("Ban");
     	this.userTempBan = properties.getNode("user").getString("TempBan");
     	this.userIPBan = properties.getNode("user").getString("IPBan");
-
+    	this.useMySQL = properties.getBoolean("use-mysql", true);
 
     }
     
-	public void setupPermissions() {
-		Plugin plugin = this.getServer().getPluginManager().getPlugin("Permissions");
-
-		if (CurrentPermissions == null) {
-			// Permission plugin already registered
-			return;
-		}
-
-		if (plugin != null) {
-			CurrentPermissions = (Permissions) plugin;
-		} else {
-			log.log(Level.CONFIG, "[BanReport] Needs permissions plugin. disabling...");
-			this.getServer().getPluginManager().disablePlugin(this);
-		}
-	}
 
     
     
@@ -194,7 +176,7 @@ public class BanReport extends JavaPlugin {
         if(sender instanceof Player)
         {
             player = (Player)sender;
-            if (Permissions.Security.permission(player, "banreport.baninfo")) auth=true;
+            if (player.hasPermission("banreport.baninfo")) auth=true;
 
         }
         else auth = true;
@@ -254,7 +236,7 @@ public class BanReport extends JavaPlugin {
          if(sender instanceof Player)
          {
              player = (Player)sender;
-             if (Permissions.Security.permission(player, "banreport.baninfo")) auth=true;
+             if (player.hasPermission( "banreport.baninfo")) auth=true;
           //   commander = player.getName();
          }
          else auth = true;
@@ -308,7 +290,7 @@ public class BanReport extends JavaPlugin {
         if(sender instanceof Player)
         {
             player = (Player)sender;
-            if (Permissions.Security.permission(player, "banreport.baninfo")) auth=true;
+            if (player.hasPermission( "banreport.baninfo")) auth=true;
 
         }
         else auth = true;
@@ -388,7 +370,7 @@ public class BanReport extends JavaPlugin {
          if(sender instanceof Player)
          {
              player = (Player)sender;
-             if (Permissions.Security.permission(player, "banreport.ban")) auth=true;
+             if (player.hasPermission( "banreport.ban")) auth=true;
           //   commander = player.getName();
          }
          else auth = true;
@@ -481,7 +463,7 @@ public class BanReport extends JavaPlugin {
      if(sender instanceof Player)
      {
          player = (Player)sender;
-         if (Permissions.Security.permission(player, "banreport.ban")) auth=true;
+         if (player.hasPermission( "banreport.ban")) auth=true;
       //   commander = player.getName();
      }
      else auth = true;
@@ -616,7 +598,7 @@ public class BanReport extends JavaPlugin {
          if(sender instanceof Player)
          {
              player = (Player)sender;
-             if (Permissions.Security.permission(player, "banreport.unban")) auth=true;
+             if (player.hasPermission( "banreport.unban")) auth=true;
           //   commander = player.getName();
          }
          else auth = true;
@@ -681,7 +663,7 @@ public class BanReport extends JavaPlugin {
      if(sender instanceof Player)
      {
          player = (Player)sender;
-         if (Permissions.Security.permission(player, "banreport.kick")) auth=true;
+         if (player.hasPermission( "banreport.kick")) auth=true;
       //   commander = player.getName();
      }
      else auth = true;
@@ -767,7 +749,7 @@ public class BanReport extends JavaPlugin {
      if(sender instanceof Player)
      {
          player = (Player)sender;
-         if (Permissions.Security.permission(player, "banreport.banip")) auth=true;
+         if (player.hasPermission( "banreport.banip")) auth=true;
       //   commander = player.getName();
      }
      else auth = true;
@@ -822,7 +804,7 @@ public class BanReport extends JavaPlugin {
          if(sender instanceof Player)
          {
              player = (Player)sender;
-             if (Permissions.Security.permission(player, "banreport.bantp")) auth=true;
+             if (player.hasPermission( "banreport.bantp")) auth=true;
 
          }
          else
@@ -969,7 +951,7 @@ public class BanReport extends JavaPlugin {
 	     if(sender instanceof Player)
 	     {
 	         player = (Player)sender;
-	         if (Permissions.Security.permission(player, "banreport.io")) auth=true;
+	         if (player.hasPermission( "banreport.io")) auth=true;
 	      //   commander = player.getName();
 	     }
 	     else auth = true;
@@ -1022,7 +1004,7 @@ public class BanReport extends JavaPlugin {
 	     if(sender instanceof Player)
 	     {
 	         player = (Player)sender;
-	         if (Permissions.Security.permission(player, "banreport.io")) auth=true;
+	         if (player.hasPermission( "banreport.io")) auth=true;
 	      //   commander = player.getName();
 	     }
 	     else auth = true;

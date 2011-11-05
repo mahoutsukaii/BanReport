@@ -10,6 +10,7 @@ package jadon.mahoutsukaii.plugins.banreport;
  */
 import java.io.File;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -18,6 +19,8 @@ import java.sql.Timestamp;
 import java.util.logging.Level;
 import java.util.Date;
 //import java.util.ArrayList;
+
+
 import org.bukkit.util.config.Configuration;
 
 @SuppressWarnings("deprecation")
@@ -26,19 +29,37 @@ public class MySQLDatabase{
 
 	BanReport plugin;
 
-	public static Connection getSQLConnection() {
+	public static Connection getSQLConnection()  {
 		Configuration Config = new Configuration(new File("plugins/BanReport/config.yml"));
 		Config.load();
-		String mysqlDatabase = Config.getString("mysql-database","jdbc:mysql://localhost:3306/minecraft");
-		String mysqlUser = Config.getString("mysql-user","root");
-		String mysqlPassword = Config.getString("mysql-password","root");
+		if(BanReport.useMySQL)
+		{
+			String mysqlDatabase = Config.getString("mysql-database","jdbc:mysql://localhost:3306/minecraft");
+			String mysqlUser = Config.getString("mysql-user","root");
+			String mysqlPassword = Config.getString("mysql-password","root");
+			try {
 
-		try {
-
-			return DriverManager.getConnection(mysqlDatabase + "?autoReconnect=true&user=" + mysqlUser + "&password=" + mysqlPassword);
-		} catch (SQLException ex) {
-			BanReport.log.log(Level.SEVERE, "Unable to retreive connection", ex);
+				return DriverManager.getConnection(mysqlDatabase + "?autoReconnect=true&user=" + mysqlUser + "&password=" + mysqlPassword);
+			} catch (SQLException ex) {
+				BanReport.log.log(Level.SEVERE, "Unable to retreive connection", ex);
+			}
 		}
+		else
+		{
+			try {
+			    try {
+					Class.forName("org.sqlite.JDBC");
+				} catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				return  DriverManager.getConnection("jdbc:sqlite:plugins/BanReport/banlist.db");
+			} catch (SQLException ex) {
+				BanReport.log.log(Level.SEVERE, "Unable to retreive connection", ex);
+			}
+			
+		}
+
 		return null;
 	}
 
@@ -48,11 +69,17 @@ public class MySQLDatabase{
 		String mysqlTable = plugin.getConfiguration().getString("mysql-table","banlist");
 		plugin.bannedNubs.clear();
 		plugin.bannedIPs.clear();
+		if(!BanReport.useMySQL)
+		{
+			makeSQLiteTables();
+		}
+
 		if (conn == null) {
 			BanReport.log.log(Level.SEVERE, "[BanReport] Could not establish SQL connection. Disabling BanReport");
 			plugin.getServer().getPluginManager().disablePlugin(plugin);
 			return;
 		} else {
+			
 
 			PreparedStatement ps = null;
 			ResultSet rs = null;
@@ -81,7 +108,7 @@ public class MySQLDatabase{
 			try {
 				conn.close();
 				initialiseIPs();
-				BanReport.log.log(Level.INFO, "[BanReport] MySQL connection initialised." );
+				BanReport.log.log(Level.INFO, "[BanReport] SQL connection initialised." );
 			} catch (SQLException e) {
 				e.printStackTrace();
 				plugin.getServer().getPluginManager().disablePlugin(plugin);
@@ -102,7 +129,7 @@ public class MySQLDatabase{
 				plugin.bannedIPs.add(rs.getString("IP"));
 			}
 		} catch (SQLException ex) {
-			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute MySQL statement: ", ex);
+			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute SQL statement: ", ex);
 		} finally {
 			try {
 				if (ps != null)
@@ -110,7 +137,7 @@ public class MySQLDatabase{
 				if (conn != null)
 					conn.close();
 			} catch (SQLException ex) {
-				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close MySQL connection: ", ex);
+				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close SQL connection: ", ex);
 			}
 		}
 
@@ -136,7 +163,7 @@ public class MySQLDatabase{
 				return true;
 			}
 		} catch (SQLException ex) {
-			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute MySQL statement: ", ex);
+			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute SQL statement: ", ex);
 		} finally {
 			try {
 				if (ps != null)
@@ -144,7 +171,7 @@ public class MySQLDatabase{
 				if (conn != null)
 					conn.close();
 			} catch (SQLException ex) {
-				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close MySQL connection: ", ex);
+				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close SQL connection: ", ex);
 			}
 		}
 		return false;
@@ -170,7 +197,7 @@ public class MySQLDatabase{
 				return reason;
 			}
 		} catch (SQLException ex) {
-			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute MySQL statement: ", ex);
+			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute SQL statement: ", ex);
 		} finally {
 			try {
 				if (ps != null)
@@ -178,7 +205,7 @@ public class MySQLDatabase{
 				if (conn != null)
 					conn.close();
 			} catch (SQLException ex) {
-				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close MySQL connection: ", ex);
+				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close SQL connection: ", ex);
 			}
 		}
 		return null;
@@ -202,7 +229,7 @@ public class MySQLDatabase{
 					return  new EditBan(rs.getString("name"), rs.getString("reason"), rs.getString("admin"),new Timestamp(0), rs.getString("additional"));
 			}
 		} catch (SQLException ex) {
-			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute MySQL statement: ", ex);
+			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute SQL statement: ", ex);
 		} finally {
 			try {
 				if (ps != null)
@@ -210,7 +237,7 @@ public class MySQLDatabase{
 				if (conn != null)
 					conn.close();
 			} catch (SQLException ex) {
-				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close MySQL connection: ", ex);
+				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close SQL connection: ", ex);
 			}
 		}
 		return null;
@@ -238,7 +265,7 @@ public class MySQLDatabase{
 			ps.setString(6, "");
 			ps.executeUpdate();
 		} catch (SQLException ex) {
-			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute MySQL statement: ", ex);
+			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute SQL statement: ", ex);
 		} finally {
 			try {
 				if (ps != null)
@@ -246,7 +273,7 @@ public class MySQLDatabase{
 				if (conn != null)
 					conn.close();
 			} catch (SQLException ex) {
-				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close MySQL connection: ", ex);
+				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close SQL connection: ", ex);
 			}
 		}
 	}
@@ -271,7 +298,7 @@ public class MySQLDatabase{
 			ps.setString(7, "");
 			ps.executeUpdate();
 		} catch (SQLException ex) {
-			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute MySQL statement: ", ex);
+			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute SQL statement: ", ex);
 		} finally {
 			try {
 				if (ps != null)
@@ -279,7 +306,7 @@ public class MySQLDatabase{
 				if (conn != null)
 					conn.close();
 			} catch (SQLException ex) {
-				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close MySQL connection: ", ex);
+				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close SQL connection: ", ex);
 			}
 		}
 	}
@@ -295,11 +322,11 @@ public class MySQLDatabase{
 		PreparedStatement ps = null;
 		try {
 			conn = getSQLConnection();
-			ps = conn.prepareStatement("DELETE FROM " + mysqlTable + " WHERE name = ? ORDER BY time DESC LIMIT 1");
+			ps = conn.prepareStatement("DELETE FROM " + mysqlTable + " WHERE name = ?");
 			ps.setString(1, player);
 			ps.executeUpdate();
 		} catch (SQLException ex) {
-			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute MySQL statement: ", ex);
+			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute SQL statement: ", ex);
 			return false;
 		} finally {
 			try {
@@ -308,7 +335,7 @@ public class MySQLDatabase{
 				if (conn != null)
 					conn.close();
 			} catch (SQLException ex) {
-				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close MySQL connection: ", ex);
+				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close SQL connection: ", ex);
 			}
 		}
 		plugin.bannedNubs.remove(player);
@@ -342,7 +369,7 @@ public class MySQLDatabase{
 				return true;
 			}
 		} catch (SQLException ex) {
-			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute MySQL statement: ", ex);
+			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute SQL statement: ", ex);
 		} finally {
 			try {
 				if (ps != null)
@@ -350,7 +377,7 @@ public class MySQLDatabase{
 				if (conn != null)
 					conn.close();
 			} catch (SQLException ex) {
-				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close MySQL connection: ", ex);
+				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close SQL connection: ", ex);
 			}
 		}
 		return false;
@@ -392,7 +419,7 @@ public class MySQLDatabase{
 			ps.executeUpdate();
 	
 		} catch (SQLException ex) {
-			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute MySQL statement: ", ex);
+			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute SQL statement: ", ex);
 		} finally {
 			try {
 				if (ps != null)
@@ -400,9 +427,71 @@ public class MySQLDatabase{
 				if (conn != null)
 					conn.close();
 			} catch (SQLException ex) {
-				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close MySQL connection: ", ex);
+				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close SQL connection: ", ex);
 			}
 		}
 		
 	}
+	
+	public void makeSQLiteTables()
+	{
+		String query = 	"CREATE TABLE `banlist` ("
+				+		"  `name` varchar(32) NOT NULL,"
+				+		"  `reason` text NOT NULL,"
+				+	 	" `admin` varchar(32) NOT NULL,"
+				+  "`time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+				+  "`temptime` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',"
+				+  "`IP` varchar(15) DEFAULT NULL,"
+				+  "`additional` varchar(4096) NOT NULL,"
+				+ " PRIMARY KEY (`name`)"
+				+	") ";
+		
+		if(!tableExists())
+		{
+	    	PreparedStatement ps = null;
+    		Connection conn = getSQLConnection();
+    		try {
+    			conn = getSQLConnection();
+    			ps = conn.prepareStatement(query);
+    			ps.executeUpdate();
+    	
+    		} catch (SQLException ex) {
+    			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute SQL statement: ", ex);
+    		} finally {
+    			try {
+    				if (ps != null)
+    					ps.close();
+    				if (conn != null)
+    					conn.close();
+    			} catch (SQLException ex) {
+    				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close SQL connection: ", ex);
+    			}
+    		}
+    		
+		}
+		
+	}
+	private boolean tableExists() {
+    	ResultSet rs = null;
+    	try {
+    		Connection conn = getSQLConnection();
+    		DatabaseMetaData dbm = conn.getMetaData();
+    		rs = dbm.getTables(null, null, "banlist", null);
+    		if (!rs.next()) {
+    			return false;
+    		}
+    		return true;
+    	} catch (SQLException ex) {
+			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute SQL statement: ", ex);
+    		return false;
+    	} finally {
+    		try {
+    			if (rs != null) {
+    				rs.close();
+    			}
+    		} catch (SQLException ex) {
+				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close SQL connection: ", ex);
+    		}
+    	}
+    }
 }
