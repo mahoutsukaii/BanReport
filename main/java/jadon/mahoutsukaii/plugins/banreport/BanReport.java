@@ -445,16 +445,16 @@ public class BanReport extends JavaPlugin {
          if(actualVictim != null)
          {
         	 String message = this.userBan;
-        	 message = message.replaceAll("%victim%", victim);
-        	 message = message.replaceAll("%admin%", sender.getName());
-        	 message = message.replaceAll("%reason%", reason);
+        	 message = message.replace("%victim%", victim);
+        	 message = message.replace("%admin%", sender.getName());
+        	 message = message.replace("%reason%", reason);
         	 actualVictim.kickPlayer(message);
 
          }
     	 String message = this.broadcastBan;
-    	 message = message.replaceAll("%victim%", victim);
-    	 message = message.replaceAll("%admin%", sender.getName());
-    	 message = message.replaceAll("%reason%", reason);
+    	 message = message.replace("%victim%", victim);
+    	 message = message.replace("%admin%", sender.getName());
+    	 message = message.replace("%reason%", reason);
          if(!silent)
          {
 
@@ -526,7 +526,7 @@ public class BanReport extends JavaPlugin {
     		 reason = combineSplit(2, args, " ");
     	 
     	 unparsedTime = args[1];
-    	 time = Long.parseLong(unparsedTime.replaceAll("[\\D]", ""));
+    	 time = Long.parseLong(unparsedTime.replace("[\\D]", ""));
     	 unit = unparsedTime.charAt(unparsedTime.length() -1);
     	 
      }
@@ -538,7 +538,7 @@ public class BanReport extends JavaPlugin {
     		 reason = combineSplit(3, args, " ");
     	 
     	 unparsedTime = args[2];
-    	 time = Long.parseLong(unparsedTime.replaceAll("[\\D]", ""));
+    	 time = Long.parseLong(unparsedTime.replace("[\\D]", ""));
     	 unit = unparsedTime.charAt(unparsedTime.length() -1);
      }
      
@@ -582,18 +582,18 @@ public class BanReport extends JavaPlugin {
      if(actualVictim != null)
      {
     	 String message = this.userTempBan;
-    	 message = message.replaceAll("%victim%", victim);
-    	 message = message.replaceAll("%admin%", sender.getName());
-    	 message = message.replaceAll("%reason%", reason);
-    	 message = message.replaceAll("%time%", getTimeDifference(temptime));
+    	 message = message.replace("%victim%", victim);
+    	 message = message.replace("%admin%", sender.getName());
+    	 message = message.replace("%reason%", reason);
+    	 message = message.replace("%time%", getTimeDifference(temptime));
     	 actualVictim.kickPlayer(message);
      }
      
 	 String message = this.broadcastTempBan;
-	 message = message.replaceAll("%victim%", victim);
-	 message = message.replaceAll("%admin%", sender.getName());
-	 message = message.replaceAll("%reason%", reason);
-	 message = message.replaceAll("%time%", getTimeDifference(temptime));
+	 message = message.replace("%victim%", victim);
+	 message = message.replace("%admin%", sender.getName());
+	 message = message.replace("%reason%", reason);
+	 message = message.replace("%time%", getTimeDifference(temptime));
 
      if(!silent)
      {
@@ -658,8 +658,8 @@ public class BanReport extends JavaPlugin {
          sender.sendMessage(ChatColor.GREEN + "Successfully unbanned " + victim + "!");
 
     	 String message = this.broadcastUnban;
-    	 message = message.replaceAll("%victim%", victim);
-    	 message = message.replaceAll("%admin%", sender.getName());
+    	 message = message.replace("%victim%", victim);
+    	 message = message.replace("%admin%", sender.getName());
          
          if(!silent)
          {
@@ -740,15 +740,15 @@ public class BanReport extends JavaPlugin {
     	 return true;
      }
 	 String message = this.userKick;
-	 message = message.replaceAll("%victim%", victim);
-	 message = message.replaceAll("%admin%", sender.getName());
-	 message = message.replaceAll("%reason%", reason);
+	 message = message.replace("%victim%", victim);
+	 message = message.replace("%admin%", sender.getName());
+	 message = message.replace("%reason%", reason);
     	 actualVictim.kickPlayer(message);
     	 
     	 message = this.broadcastKick;
-    	 message = message.replaceAll("%victim%", victim);
-    	 message = message.replaceAll("%admin%", sender.getName());
-    	 message = message.replaceAll("%reason%", reason);
+    	 message = message.replace("%victim%", victim);
+    	 message = message.replace("%admin%", sender.getName());
+    	 message = message.replace("%reason%", reason);
     	 
      if(!silent)
      {
@@ -1151,7 +1151,7 @@ public class BanReport extends JavaPlugin {
 	
 	public String formatMessage(String str){
 		String funnyChar = new Character((char) 167).toString();
-		str = str.replaceAll("&", funnyChar);
+		str = str.replace("&", funnyChar);
 		return str;
 	}
 	

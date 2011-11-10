@@ -20,6 +20,7 @@ public class BanReportPlayerListener extends PlayerListener {
 	public void onPlayerLogin(PlayerLoginEvent event)
 	{
 		Player player = event.getPlayer();
+	//	System.out.print(plugin.bannedNubs);
 		if(plugin.db.checkBanList(player.getName().toLowerCase()))
 		{
 			String kickMsg;
@@ -28,8 +29,8 @@ public class BanReportPlayerListener extends PlayerListener {
 		
 		
 		kickMsg = plugin.userBan;
-   	 	kickMsg = kickMsg.replaceAll("%admin%", playerInfo.admin);
-   	 	kickMsg = kickMsg.replaceAll("%reason%", playerInfo.reason);
+   	 	kickMsg = kickMsg.replace("%admin%", playerInfo.admin);
+   	 	kickMsg = kickMsg.replace("%reason%", playerInfo.reason);
 	//	plugin.log.log(Level.INFO, "[HERERE] " + playerInfo.temptime);
 	//	plugin.log.log(Level.INFO, "[HERERE] " + new Date().getTime());
 		if(playerInfo.temptime != 0)
@@ -37,7 +38,7 @@ public class BanReportPlayerListener extends PlayerListener {
 			long difference = playerInfo.temptime - new Date().getTime();
 			if (difference <= 0)
 			{
-			//System.out.print( "" + playerInfo.temptime + " as opposed to " + new Date().getTime());
+	//		System.out.print( "" + playerInfo.temptime + " as opposed to " + new Date().getTime());
 			plugin.db.removePlayer(player.getName().toLowerCase());
 			BanReport.log.log(Level.INFO, "[BanReport] " + player.getName() + " has been released from temp ban!");
 			return;
@@ -47,9 +48,9 @@ public class BanReportPlayerListener extends PlayerListener {
 				String time = plugin.getTimeDifference(difference + new Date().getTime());
 				
 				kickMsg = plugin.userTempBan;
-		   	 	kickMsg = kickMsg.replaceAll("%admin%", playerInfo.admin);
-		   	 	kickMsg = kickMsg.replaceAll("%reason%", playerInfo.reason);
-		   	 	kickMsg = kickMsg.replaceAll("%time%", time);
+		   	 	kickMsg = kickMsg.replace("%admin%", playerInfo.admin);
+		   	 	kickMsg = kickMsg.replace("%reason%", playerInfo.reason);
+		   	 	kickMsg = kickMsg.replace("%time%", time);
 	
 			}
 		}
@@ -84,8 +85,8 @@ public class BanReportPlayerListener extends PlayerListener {
 		//	plugin.log.log(Level.INFO, "[HERERE] " + playerInfo.admin);
 			String kickMsg;
 			kickMsg = plugin.userBan;
-	   	 	kickMsg = kickMsg.replaceAll("%admin%", playerInfo.admin);
-	   	 	kickMsg = kickMsg.replaceAll("%reason%", playerInfo.reason);
+	   	 	kickMsg = kickMsg.replace("%admin%", playerInfo.admin);
+	   	 	kickMsg = kickMsg.replace("%reason%", playerInfo.reason);
 			
 			player.kickPlayer(kickMsg);
 		}

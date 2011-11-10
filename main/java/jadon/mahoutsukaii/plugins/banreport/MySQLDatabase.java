@@ -145,7 +145,7 @@ public class MySQLDatabase{
 	public boolean checkBanList(String player)
 	{
 		
-		if(plugin.bannedNubs.contains(player))
+		if(plugin.bannedNubs.contains(player.toLowerCase()))
 			return true;
 
 		
@@ -224,7 +224,7 @@ public class MySQLDatabase{
 			rs = ps.executeQuery();
 			while (rs.next()){
 				if(rs.getLong("temptime") != 0)
-				return new EditBan(rs.getString("name"), rs.getString("reason"), rs.getString("admin"), rs.getTimestamp("temptime"), rs.getString("additional"));
+				return new EditBan(rs.getString("name").toLowerCase(), rs.getString("reason"), rs.getString("admin"), rs.getTimestamp("temptime"), rs.getString("additional"));
 				else
 					return  new EditBan(rs.getString("name"), rs.getString("reason"), rs.getString("admin"),new Timestamp(0), rs.getString("additional"));
 			}
@@ -246,7 +246,7 @@ public class MySQLDatabase{
 	public void addPlayer(String player, String reason, String admin, long tempTime)
 	{
 		String mysqlTable = plugin.getConfiguration().getString("mysql-table");
-		plugin.bannedNubs.add(player);
+		plugin.bannedNubs.add(player.toLowerCase());
 		Connection conn = null;
 		PreparedStatement ps = null;
 		try {
@@ -338,9 +338,9 @@ public class MySQLDatabase{
 				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close SQL connection: ", ex);
 			}
 		}
-		plugin.bannedNubs.remove(player);
-		if(plugin.bannedIPs.contains(player))
-			plugin.bannedIPs.remove(player);
+		plugin.bannedNubs.remove(player.toLowerCase());
+		if(plugin.bannedIPs.contains(player.toLowerCase()))
+			plugin.bannedIPs.remove(player.toLowerCase());
 
 		
 		return true;
