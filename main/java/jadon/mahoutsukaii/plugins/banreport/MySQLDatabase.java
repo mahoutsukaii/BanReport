@@ -29,10 +29,14 @@ public class MySQLDatabase{
 
 	BanReport plugin;
 
-	public static Connection getSQLConnection()  {
+	public MySQLDatabase(BanReport instance)
+	{
+		plugin = instance;
+	}
+	public Connection getSQLConnection()  {
 		Configuration Config = new Configuration(new File("plugins/BanReport/config.yml"));
 		Config.load();
-		if(BanReport.useMySQL)
+		if(plugin.useMySQL)
 		{
 			String mysqlDatabase = Config.getString("mysql-database","jdbc:mysql://localhost:3306/minecraft");
 			String mysqlUser = Config.getString("mysql-user","root");
@@ -63,13 +67,12 @@ public class MySQLDatabase{
 		return null;
 	}
 
-	public void initialise(BanReport plugin){
-		this.plugin = plugin;
+	public void initialise(){
 		Connection conn = getSQLConnection();
 		String mysqlTable = plugin.getConfiguration().getString("mysql-table","banlist");
 		plugin.bannedNubs.clear();
 		plugin.bannedIPs.clear();
-		if(!BanReport.useMySQL)
+		if(!plugin.useMySQL)
 		{
 			makeSQLiteTables();
 		}
@@ -134,6 +137,8 @@ public class MySQLDatabase{
 			try {
 				if (ps != null)
 					ps.close();
+				if (rs != null)
+					rs.close();
 				if (conn != null)
 					conn.close();
 			} catch (SQLException ex) {
@@ -141,6 +146,41 @@ public class MySQLDatabase{
 			}
 		}
 
+	}
+	
+	public void createHTMLFile()
+	{
+		HtmlFile htmlFile = new HtmlFile(plugin);
+		
+		Connection conn = getSQLConnection();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		String mysqlTable = plugin.getConfiguration().getString("mysql-table");
+		try {
+			ps = conn.prepareStatement("SELECT * FROM " + mysqlTable);
+			rs = ps.executeQuery();
+			while (rs.next()){
+				if(rs.getLong("temptime")!=0)
+					htmlFile.add(rs.getString("name"), rs.getString("reason"), rs.getString("admin"), rs.getTimestamp("time").getTime(), rs.getTimestamp("tempTime").getTime(), rs.getString("additional"));
+				else
+					htmlFile.add(rs.getString("name"), rs.getString("reason"), rs.getString("admin"), rs.getTimestamp("time").getTime(), 0, rs.getString("additional"));
+				}
+			} catch (SQLException ex) {
+			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute SQL statement: ", ex);
+		} finally {
+			try {
+				if (ps != null)
+					ps.close();
+				if (rs != null)
+					rs.close();
+				if (conn != null)
+					conn.close();
+			} catch (SQLException ex) {
+				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close SQL connection: ", ex);
+			}
+		}
+		
+		htmlFile.save();
 	}
 	public boolean checkBanList(String player)
 	{
@@ -178,38 +218,6 @@ public class MySQLDatabase{
 		*/
 	}
 
-	public String getBanInfo(String player, boolean local)
-	{
-		String reason;
-		Connection conn = getSQLConnection();
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		String mysqlTable = plugin.getConfiguration().getString("mysql-table");
-		try {
-			ps = conn.prepareStatement("SELECT * FROM " + mysqlTable + " WHERE name = ?");
-			ps.setString(1, player);
-			rs = ps.executeQuery();
-			while (rs.next()){
-				if(local == false)
-					reason = rs.getString("reason") + "/r" + rs.getString("additional");
-				else
-					reason = rs.getString("additional");
-				return reason;
-			}
-		} catch (SQLException ex) {
-			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute SQL statement: ", ex);
-		} finally {
-			try {
-				if (ps != null)
-					ps.close();
-				if (conn != null)
-					conn.close();
-			} catch (SQLException ex) {
-				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close SQL connection: ", ex);
-			}
-		}
-		return null;
-	}
 	
 	public EditBan getInfo(String player)
 	{
@@ -234,6 +242,8 @@ public class MySQLDatabase{
 			try {
 				if (ps != null)
 					ps.close();
+				if (rs != null)
+					rs.close();
 				if (conn != null)
 					conn.close();
 			} catch (SQLException ex) {
@@ -392,7 +402,7 @@ public class MySQLDatabase{
 		
 
 		String mysqlTable = plugin.getConfiguration().getString("mysql-table");
-		String info2 = getBanInfo(player, true);
+		String info2 = getInfo(player).additional;
 		
 		if(info2 == "")
 			info2 = info;
@@ -478,8 +488,19 @@ public class MySQLDatabase{
     		DatabaseMetaData dbm = conn.getMetaData();
     		rs = dbm.getTables(null, null, "banlist", null);
     		if (!rs.next()) {
+    			if (rs != null) {
+    				rs.close();
+    			}
+
+				if (conn != null)
+					conn.close();
     			return false;
     		}
+			if (rs != null) {
+				rs.close();
+			}
+			if (conn != null)
+				conn.close();
     		return true;
     	} catch (SQLException ex) {
 			BanReport.log.log(Level.SEVERE, "[BanReport] Couldn't execute SQL statement: ", ex);
@@ -489,6 +510,7 @@ public class MySQLDatabase{
     			if (rs != null) {
     				rs.close();
     			}
+
     		} catch (SQLException ex) {
 				BanReport.log.log(Level.SEVERE, "[BanReport] Failed to close SQL connection: ", ex);
     		}

@@ -15,6 +15,7 @@ import java.util.logging.Logger;
 
 import ru.tehkode.permissions.bukkit.PermissionsEx;
 
+import org.anjocaido.groupmanager.GroupManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -27,16 +28,15 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.config.Configuration;
 
+import com.nijikokun.bukkit.Permissions.Permissions;
+
 
 @SuppressWarnings("deprecation")
 
 public class BanReport extends JavaPlugin {
 	
 	static boolean dev = false; //turn off for production.
-	Plugin permissionsEx; 
 	
-	public static String newline = System.getProperty("line.separator");
-
 	public static String maindir = "plugins/BanReport/";
 	
     public static final Logger log = Logger.getLogger("Minecraft");
@@ -59,9 +59,11 @@ public class BanReport extends JavaPlugin {
 	public String userTempBan;
 	public String userIPBan;
 	
-	public static boolean useMySQL;
+	public boolean useMySQL;
 	
-
+	private Plugin permissionsEx;
+	private Plugin groupManager;
+	private Plugin permissions;
 //    ArrayList<String> bannedPlayers = new ArrayList<String>();
     MySQLDatabase db;
     
@@ -91,18 +93,20 @@ public class BanReport extends JavaPlugin {
 
 	public void onEnable() {
 		permissionsEx = getServer().getPluginManager().getPlugin("PermissionsEx");
-    	bannedNubs.clear();
+		groupManager = getServer().getPluginManager().getPlugin("GroupManager");
+		permissions = getServer().getPluginManager().getPlugin("Permissions");
+		
 		new File(maindir).mkdir();
 
 		createDefaultConfiguration("config.yml");
 		properties.load();
 		getStrings();
-        db = new MySQLDatabase();
-        db.initialise(this);
+        db = new MySQLDatabase(this);
+        db.initialise();
         
 		PluginManager pm = getServer().getPluginManager();
 		pm.registerEvent(Event.Type.PLAYER_LOGIN, playerListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.PLAYER_JOIN, playerListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.PLAYER_JOIN, playerListener, Priority.Highest, this);
 
         
         System.out.println(this + " is now enabled!");
@@ -157,7 +161,10 @@ public class BanReport extends JavaPlugin {
        
        if(commandName.equals("banexport"))
        {
+    	   if(trimmedArgs.length < 1)
     	   return exportBans(sender);
+    	   else
+    		   return exportHTML(sender);
        }
        
        if(commandName.equals("banimport"))
@@ -169,30 +176,21 @@ public class BanReport extends JavaPlugin {
         
     }
     
+    private boolean exportHTML(CommandSender sender)
+    {
+    	
+    	db.createHTMLFile();
+
+    	return true;
+    }
     private boolean banInfo(CommandSender sender, String[] args)
     {
     	
-        Player player = null;
-        boolean auth = false;
 
-        
-        if(sender instanceof Player)
+        if(!getPermission(sender, "banreport.baninfo"))
         {
-            player = (Player)sender;
-            if (player.hasPermission("banreport.baninfo")) auth=true;
-            if(permissionsEx!=null)
-           if( ((PermissionsEx) permissionsEx).getPermissionManager().has(player, "banreport.baninfo")) auth=true;
-
-
-        }
-        else auth = true;
-        
-        if(dev == true)
-        	auth = true;
-        
-        if(!auth)
-        {
-        	return false;
+        	sender.sendMessage(ChatColor.RED + "You do not have permission.");
+        	return true;
         }
         
         if(args.length < 1) //not enough arguments.
@@ -209,21 +207,22 @@ public class BanReport extends JavaPlugin {
         	return true;
         	}
         
-
-       formatMessage((String)db.getBanInfo(victim, false), sender, victim);
+       
+       formatMessage(sender, victim);
 
         
         return true;
     }
     
-    private void formatMessage(String unformatted, CommandSender sender, String victim)
+    private void formatMessage(CommandSender sender, String victim)
     {
-    	String unformWithRed = ChatColor.RED + victim + ": " + unformatted;
+    	sender.sendMessage(ChatColor.RED + victim + " banned by " + db.getInfo(victim).admin +".");
+    	String unformWithRed =  db.getInfo(victim).reason + "/r" + db.getInfo(victim).additional;
     	String[] formatted = unformWithRed.split("/r");
     	for(int i=0;i<formatted.length;i++)
     	{
     		if(i == 0)
-    			sender.sendMessage(formatted[i]);
+    			sender.sendMessage(ChatColor.RED + formatted[i]);
     		else
     		sender.sendMessage(ChatColor.GRAY + "[" + i + "] " + formatted[i]);
     		}
@@ -234,30 +233,15 @@ public class BanReport extends JavaPlugin {
     private boolean addInfo(CommandSender sender, String[] args)
     {
 
+        Player player = null;
+        if(sender instanceof Player)
+        	player=(Player)sender;
         
-    	 Player player = null;
-         boolean auth = false;
-     //    String commander = "CONSOLE";
-         
-         if(sender instanceof Player)
-         {
-             player = (Player)sender;
-             if (player.hasPermission( "banreport.baninfo")) auth=true;
-             if(permissionsEx!=null)
-            if( ((PermissionsEx) permissionsEx).getPermissionManager().has(player, "banreport.baninfo")) auth=true;
-
-          //   commander = player.getName();
-         }
-         else auth = true;
-         
-         if(dev == true)
-         	auth = true;
-         
-         
-         if(!auth)
-         {
-         	return false;
-         }
+        if(!getPermission(sender, "banreport.baninfo"))
+        {
+        	sender.sendMessage(ChatColor.RED + "You do not have permission.");
+        	return true;
+        }
          
          if(args.length < 1) //not enough arguments.
          {
@@ -290,28 +274,11 @@ public class BanReport extends JavaPlugin {
     
     private boolean removeInfo(CommandSender sender, String[] args)
     {
-    	
-        
-        Player player = null;
-        boolean auth = false;
 
-        
-        if(sender instanceof Player)
+        if(!getPermission(sender, "banreport.baninfo"))
         {
-            player = (Player)sender;
-            if (player.hasPermission( "banreport.baninfo")) auth=true;
-            if(permissionsEx!=null)
-           if( ((PermissionsEx) permissionsEx).getPermissionManager().has(player, "banreport.baninfo")) auth=true;
-
-        }
-        else auth = true;
-        
-        if(dev == true)
-        	auth = true;
-        
-        if(!auth)
-        {
-        	return false;
+        	sender.sendMessage(ChatColor.RED + "You do not have permission.");
+        	return true;
         }
         
         if(args.length < 2) //not enough arguments.
@@ -330,7 +297,7 @@ public class BanReport extends JavaPlugin {
       
 
         
-        String rawReasons = (String)db.getBanInfo(victim, true);
+        String rawReasons = (String)db.getInfo(victim).additional;
         if(rawReasons == "")
         {
         	sender.sendMessage(ChatColor.RED + "Nothing to remove!");
@@ -374,28 +341,11 @@ public class BanReport extends JavaPlugin {
     
     public Boolean banPlayer(CommandSender sender, String[] args)
     {
-     	 Player player = null;
-         boolean auth = false;
-     //    String commander = "CONSOLE";
-         
-         if(sender instanceof Player)
-         {
-             player = (Player)sender;
-             if (player.hasPermission( "banreport.ban")) auth=true;
-             if(permissionsEx!=null)
-            if( ((PermissionsEx) permissionsEx).getPermissionManager().has(player, "banreport.ban")) auth=true;
 
-          //   commander = player.getName();
-         }
-         else auth = true;
-         
-         if(dev == true)
-         	auth = true;
-         
-         
-         if(!auth)
+         if(!getPermission(sender, "banreport.ban"))
          {
-         	return false;
+         	sender.sendMessage(ChatColor.RED + "You do not have permission.");
+         	return true;
          }
          
          if(args.length < 1) //not enough arguments.
@@ -448,7 +398,7 @@ public class BanReport extends JavaPlugin {
         	 message = message.replace("%victim%", victim);
         	 message = message.replace("%admin%", sender.getName());
         	 message = message.replace("%reason%", reason);
-        	 actualVictim.kickPlayer(message);
+        	 actualVictim.kickPlayer(formatMessage(message));
 
          }
     	 String message = this.broadcastBan;
@@ -470,28 +420,11 @@ public class BanReport extends JavaPlugin {
     
     public Boolean tempBan(CommandSender sender, String[] args)
     {
-   	 Player player = null;
-     boolean auth = false;
- //    String commander = "CONSOLE";
-     
-     if(sender instanceof Player)
-     {
-         player = (Player)sender;
-         if (player.hasPermission( "banreport.ban")) auth=true;
-         if(permissionsEx!=null)
-        if( ((PermissionsEx) permissionsEx).getPermissionManager().has(player, "banreport.ban")) auth=true;
-
-     }
-     else auth = true;
-     
-     if(dev == true)
-     	auth = true;
-     
-     
-     if(!auth)
-     {
-     	return false;
-     }
+        if(!getPermission(sender, "banreport.ban"))
+        {
+        	sender.sendMessage(ChatColor.RED + "You do not have permission.");
+        	return true;
+        }
      
      if(args.length < 2) //not enough arguments.
      {
@@ -526,7 +459,7 @@ public class BanReport extends JavaPlugin {
     		 reason = combineSplit(2, args, " ");
     	 
     	 unparsedTime = args[1];
-    	 time = Long.parseLong(unparsedTime.replace("[\\D]", ""));
+    	 time = Long.parseLong(unparsedTime.replaceAll("[\\D+]", ""));
     	 unit = unparsedTime.charAt(unparsedTime.length() -1);
     	 
      }
@@ -538,7 +471,7 @@ public class BanReport extends JavaPlugin {
     		 reason = combineSplit(3, args, " ");
     	 
     	 unparsedTime = args[2];
-    	 time = Long.parseLong(unparsedTime.replace("[\\D]", ""));
+    	 time = Long.parseLong(unparsedTime.replaceAll("[\\D]", ""));
     	 unit = unparsedTime.charAt(unparsedTime.length() -1);
      }
      
@@ -586,7 +519,7 @@ public class BanReport extends JavaPlugin {
     	 message = message.replace("%admin%", sender.getName());
     	 message = message.replace("%reason%", reason);
     	 message = message.replace("%time%", getTimeDifference(temptime));
-    	 actualVictim.kickPlayer(message);
+    	 actualVictim.kickPlayer(formatMessage(message));
      }
      
 	 String message = this.broadcastTempBan;
@@ -607,28 +540,11 @@ public class BanReport extends JavaPlugin {
     
     public Boolean unbanPlayer(CommandSender sender, String[] args)
     {
-    	 Player player = null;
-         boolean auth = false;
-     //    String commander = "CONSOLE";
-         
-         if(sender instanceof Player)
-         {
-             player = (Player)sender;
-             if (player.hasPermission( "banreport.unban")) auth=true;
-             if(permissionsEx!=null)
-            if( ((PermissionsEx) permissionsEx).getPermissionManager().has(player, "banreport.unban")) auth=true;
-
-         }
-         else auth = true;
-         
-         if(dev == true)
-         	auth = true;
-         
-         
-         if(!auth)
-         {
-         	return false;
-         }
+        if(!getPermission(sender, "banreport.unban"))
+        {
+        	sender.sendMessage(ChatColor.RED + "You do not have permission.");
+        	return true;
+        }
          
          if(args.length < 1) //not enough arguments.
          {
@@ -674,29 +590,11 @@ public class BanReport extends JavaPlugin {
     
     public Boolean kickPlayer(CommandSender sender, String[] args)
     {
-   	 Player player = null;
-     boolean auth = false;
- //    String commander = "CONSOLE";
-     
-     if(sender instanceof Player)
-     {
-         player = (Player)sender;
-         if (player.hasPermission( "banreport.kick")) auth=true;
-         if(permissionsEx!=null)
-        if( ((PermissionsEx) permissionsEx).getPermissionManager().has(player, "banreport.kick")) auth=true;
-
-     }
-     else auth = true;
-     
-     if(dev == true)
-     	auth = true;
-     
-     
-     if(!auth)
-     {
-     	return false;
-     }
-     
+        if(!getPermission(sender, "banreport.kick"))
+        {
+        	sender.sendMessage(ChatColor.RED + "You do not have permission.");
+        	return true;
+        }
      if(args.length < 1) //not enough arguments.
      {
      	
@@ -743,7 +641,7 @@ public class BanReport extends JavaPlugin {
 	 message = message.replace("%victim%", victim);
 	 message = message.replace("%admin%", sender.getName());
 	 message = message.replace("%reason%", reason);
-    	 actualVictim.kickPlayer(message);
+    	 actualVictim.kickPlayer(formatMessage(message));
     	 
     	 message = this.broadcastKick;
     	 message = message.replace("%victim%", victim);
@@ -762,28 +660,11 @@ public class BanReport extends JavaPlugin {
     
     public Boolean banIP(CommandSender sender, String[] args)
     {
-   	 Player player = null;
-     boolean auth = false;
- //    String commander = "CONSOLE";
-     
-     if(sender instanceof Player)
-     {
-         player = (Player)sender;
-         if (player.hasPermission( "banreport.banip")) auth=true;
-         if(permissionsEx!=null)
-        if( ((PermissionsEx) permissionsEx).getPermissionManager().has(player, "banreport.banip")) auth=true;
-
-     }
-     else auth = true;
-     
-     if(dev == true)
-     	auth = true;
-     
-     
-     if(!auth)
-     {
-     	return false;
-     }
+        if(!getPermission(sender, "banreport.banip"))
+        {
+        	sender.sendMessage(ChatColor.RED + "You do not have permission.");
+        	return true;
+        }
      
      if(args.length < 1) //not enough arguments.
      {
@@ -819,34 +700,19 @@ public class BanReport extends JavaPlugin {
     
     public Boolean banTp(CommandSender sender, String[] args)
     {
-    	 Player player = null;
-         boolean auth = false;
-
-         
-         if(sender instanceof Player)
-         {
-             player = (Player)sender;
-             if (player.hasPermission( "banreport.bantp")) auth=true;
-             if(permissionsEx!=null)
-            if( ((PermissionsEx) permissionsEx).getPermissionManager().has(player, "banreport.bantp")) auth=true;
-
-         }
-         else
-        	 {
-        	 auth = true;
-        	 sender.sendMessage("Console can't TP, silly!");
-        	 return true;
-        	 
-        	 }
-         
-         if(dev == true)
-         	auth = true;
-         
-         if(!auth)
-         {
-         	return false;
-         }
-         
+    	Player player = null;
+        if(!getPermission(sender, "banreport.bantp"))
+        {
+        	sender.sendMessage(ChatColor.RED + "You do not have permission.");
+        	return true;
+        }
+        
+        if(sender instanceof Player)
+        {
+        	player = (Player)sender;
+        }
+        else return true;
+        
          if(args.length < 2) //not enough arguments.
          {
          	
@@ -863,7 +729,7 @@ public class BanReport extends JavaPlugin {
        
 
          
-         String rawReasons = (String)db.getBanInfo(victim, true);
+         String rawReasons = db.getInfo(victim).additional;
          if(rawReasons == "")
          {
          	sender.sendMessage(ChatColor.RED + "No information.");
@@ -960,7 +826,7 @@ public class BanReport extends JavaPlugin {
 			log.log(Level.INFO, "[BanReport] " + player.getName() + " was autobanned by IP." );
 			
        	 	String message = this.userIPBan;
-			player.kickPlayer(message);
+			player.kickPlayer(formatMessage(message));
 
 			}
 		}
@@ -968,32 +834,15 @@ public class BanReport extends JavaPlugin {
 	
 	protected boolean exportBans(CommandSender sender)
 	{
-	   	 Player player = null;
-	     boolean auth = false;
-	 //    String commander = "CONSOLE";
-	     
-	     if(sender instanceof Player)
-	     {
-	         player = (Player)sender;
-	         if (player.hasPermission( "banreport.io")) auth=true;
-             if(permissionsEx!=null)
-            if( ((PermissionsEx) permissionsEx).getPermissionManager().has(player, "banreport.banio")) auth=true;
-
-	     }
-	     else auth = true;
-	     
-	     if(dev == true)
-	     	auth = true;
-	     
-	     
-	     if(!auth)
-	     {
-	     	return false;
-	     }
+        if(!getPermission(sender, "banreport.banio"))
+        {
+        	sender.sendMessage(ChatColor.RED + "You do not have permission.");
+        	return true;
+        }
 	     
 		try {
 			BufferedWriter banlist = new BufferedWriter(new FileWriter("banned-players.txt",true));
-			db.initialise(this);
+			db.initialise();
 			for(String i : bannedNubs)
 			{
 				banlist.newLine();
@@ -1023,31 +872,15 @@ public class BanReport extends JavaPlugin {
 
 	protected boolean importBans(CommandSender sender)
 	{
-	   	 Player player = null;
-	     boolean auth = false;
-	 //    String commander = "CONSOLE";
-	     
-	     if(sender instanceof Player)
-	     {
-	         player = (Player)sender;
-	         if (player.hasPermission( "banreport.io")) auth=true;
-             if(permissionsEx!=null)
-            if( ((PermissionsEx) permissionsEx).getPermissionManager().has(player, "banreport.banio")) auth=true;
 
-	     }
-	     else auth = true;
-	     
-	     if(dev == true)
-	     	auth = true;
-	     
-	     
-	     if(!auth)
-	     {
-	     	return false;
-	     }
+	        if(!getPermission(sender, "banreport.banio"))
+	        {
+	        	sender.sendMessage(ChatColor.RED + "You do not have permission.");
+	        	return true;
+	        }
 	     
 		try {
-			db.initialise(this);
+			db.initialise();
 			BufferedReader banlist = new BufferedReader(new FileReader("banned-players.txt"));
 			String strLine;
 			
@@ -1150,12 +983,33 @@ public class BanReport extends JavaPlugin {
 	}
 	
 	public String formatMessage(String str){
-		String funnyChar = new Character((char) 167).toString();
-		str = str.replace("&", funnyChar);
+	//	String funnyChar = new Character((char) 167).toString();
+		str = str.replace("&", "§");
 		return str;
 	}
 	
 	
-	
+	public boolean getPermission(CommandSender sender, String node)
+	{
+		if(!(sender instanceof Player))
+			return true;
+		Player player = (Player)sender;
+		if(player.hasPermission(node))
+		{
+			return true;
+		}
+
+		//PermissionsEx
+		if(permissionsEx!=null)
+			if( ((PermissionsEx) permissionsEx).getPermissionManager().has(player, node)) return true;
+
+		if(permissions!=null)
+			if(((Permissions) permissions).getHandler().has(player, node)) return true;
+
+		if(groupManager!=null)
+			if ( ((GroupManager) groupManager).getWorldsHolder().getWorldPermissions(player).has(player, node)) return true;
+
+		return false;
+	}
 
 }
