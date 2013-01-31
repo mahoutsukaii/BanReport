@@ -2,11 +2,10 @@ author: mahoutsukaii
 database: false
 description: handles and reports bans with coordinates and additional notes.
 generator: http://dinnerbone.com/minecraft/tools/pluginator/
-main: jadon.mahoutsukaii.plugins.banreport.BanReport
+main: me.mahoutsukaii.plugins.banreport.BanReport
 name: BanReport
 startup: postworld
-url: http://jadon-mc.net/
-version: '1.1'
+version: '2.42'
 
 commands:
   ban:
@@ -42,3 +41,12 @@ commands:
   banimport:
     description: imports the banned-players.txt to the database
     usage: /<command>
+  warn:
+    description: warns a player!
+    usage: /<command> [player] {-s} [message]
+  unwarn:
+    description: remove a warning from a player
+    usage: /<command> [player] [id]
+  warnings:
+    description: view warnings for players.
+    usage: /<command> {player}
